@@ -1,7 +1,7 @@
 {
   "name": "next-server-session",
   "version": "1.0.0",
-  "description": "Functions to handle serverside session data and csrf tokens",
+  "description": "Functions to handle serverside session data and csrf tokens for nextJS 10.x",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

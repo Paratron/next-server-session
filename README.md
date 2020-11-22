@@ -1,5 +1,4 @@
-#next-server-session
-
+# next-server-session
 Functions to handle serverside session data and csrf tokens for nextJS 10.x
 
 They can be used both in `getServerSideProps` as well as in API routes.

@@ -53,14 +53,17 @@ export function writeSessionCookie(res: NextApiResponse | ServerResponse, sessio
     }));
 }
 
-async function getSessionId(context: GetServerSidePropsContext): Promise<string>;
-async function getSessionId(req: NextApiRequest, res: NextApiResponse):Promise<string>;
-async function getSessionId(
+export async function getSessionId(context: GetServerSidePropsContext): Promise<string>;
+export async function getSessionId(req: NextApiRequest, res: NextApiResponse):Promise<string>;
+export async function getSessionId(req: NextApiRequest, res: NextApiResponse, rdSessCookie?: Function, wtSessCookie?: Function, rdSession?: sessionGetterFunction, wtSession?: sessionSetterFunction, uuid?: {v4: Function}):Promise<string>;
+export async function getSessionId(
     a: any,
     b?: any,
     rdSessCookie: Function = readSessionCookie,
     wtSessCookie: Function = writeSessionCookie,
-    rdSession: sessionGetterFunction = sessionRead
+    rdSession: sessionGetterFunction = sessionRead,
+    wtSession: sessionSetterFunction = sessionWrite,
+    { v4: uuid } = require("uuid")
 ) {
     let req, res;
     if(b){
@@ -73,10 +76,9 @@ async function getSessionId(
 
     let sessionId = rdSessCookie(req);
     if (!sessionId || !(await rdSession(sessionId))) {
-        const { v4: uuid } = require("uuid");
         sessionId = uuid();
         wtSessCookie(res, sessionId);
-        await sessionWrite(sessionId, {});
+        await wtSession(sessionId, {});
     }
     return sessionId;
 }

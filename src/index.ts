@@ -38,9 +38,30 @@ export function configure({sessionMaxAgeMS = 30 * 60 * 1000, sessionGetter, sess
     }
 }
 
+export function readSessionCookie(req: NextApiRequest | IncomingMessage, cookie = require("cookie")): string {
+    const cookies = cookie.parse(req.headers.cookie || "");
+    return cookies.nextSession;
+}
+
+export function writeSessionCookie(res: NextApiResponse | ServerResponse, sessionId: string, cookie = require("cookie")): void{
+    res.setHeader("Set-Cookie", cookie.serialize("nextSession", sessionId, {
+        httpOnly: true,
+        sameSite: true,
+        path: "/",
+        // @ts-ignore tls sockets have the encrypted prop
+        secure: !!req?.socket?.encrypted
+    }));
+}
+
 async function getSessionId(context: GetServerSidePropsContext): Promise<string>;
 async function getSessionId(req: NextApiRequest, res: NextApiResponse):Promise<string>;
-async function getSessionId(a: any, b?: any) {
+async function getSessionId(
+    a: any,
+    b?: any,
+    rdSessCookie: Function = readSessionCookie,
+    wtSessCookie: Function = writeSessionCookie,
+    rdSession: sessionGetterFunction = sessionRead
+) {
     let req, res;
     if(b){
         req = a as NextApiRequest;
@@ -50,19 +71,11 @@ async function getSessionId(a: any, b?: any) {
         res = a.res as ServerResponse;
     }
 
-    const cookie = require("cookie");
-    const cookies = cookie.parse(req.headers.cookie || "");
-    let sessionId = cookies.nextSession;
-    if (!sessionId || !(await sessionRead(sessionId))) {
+    let sessionId = rdSessCookie(req);
+    if (!sessionId || !(await rdSession(sessionId))) {
         const { v4: uuid } = require("uuid");
         sessionId = uuid();
-        res.setHeader("Set-Cookie", cookie.serialize("nextSession", sessionId, {
-            httpOnly: true,
-            sameSite: true,
-            path: "/",
-            // @ts-ignore tls sockets have the encrypted prop
-            secure: !!req?.socket?.encrypted
-        }));
+        wtSessCookie(res, sessionId);
         await sessionWrite(sessionId, {});
     }
     return sessionId;

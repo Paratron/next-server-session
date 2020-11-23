@@ -49,7 +49,8 @@ import {getSessionData, getCSRFToken} from "next-server-session";
 // ...
 
 export const getServerSideProps = async (context: GetServerSidePropsContext) => {
-    const {user} = await getSessionData(context);
+    // User might not be set. We default it to "null" in this case so nextJS can serialize the props.
+    const {user = null} = await getSessionData(context);
 
     return {
         props: {

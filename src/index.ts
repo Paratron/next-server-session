@@ -2,7 +2,7 @@ import { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from "next
 import { IncomingMessage, ServerResponse } from "http";
 
 export interface SessionConfig {
-    sessionMaxAgeMS: number;
+    sessionMaxAgeMS?: number;
     sessionGetter?: sessionGetterFunction;
     sessionSetter?: sessionSetterFunction;
 }
@@ -13,7 +13,7 @@ export type sessionSetterFunction = (sessionId: string, data: any) => Promise<an
 let sessionRead: sessionGetterFunction;
 let sessionWrite: sessionSetterFunction;
 
-export function configure({sessionMaxAgeMS = 30 * 60 * 1000, sessionGetter, sessionSetter}: SessionConfig){
+export function configure({sessionMaxAgeMS = 30 * 60 * 1000, sessionGetter, sessionSetter}: SessionConfig = {}){
     if(!sessionGetter || !sessionSetter){
         const sessions = new Map();
 

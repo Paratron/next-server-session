@@ -4,6 +4,7 @@
   "description": "Functions to handle serverside session data and csrf tokens for nextJS 10.x",
   "main": "dist/index.js",
   "files": [
+    "README.md",
     "dist/*"
   ],
   "scripts": {

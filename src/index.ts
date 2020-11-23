@@ -9,9 +9,12 @@ export interface SessionConfig {
 
 export type sessionGetterFunction = (sessionId: string) => Promise<any>;
 export type sessionSetterFunction = (sessionId: string, data: any) => Promise<any>;
+export type sessionDestroyerFunction = (sessionId: string) => Promise<any>;
 
 let sessionRead: sessionGetterFunction;
 let sessionWrite: sessionSetterFunction;
+let sessionMerge: sessionSetterFunction;
+let sessionDestroy: sessionDestroyerFunction;
 
 export function configure({sessionMaxAgeMS = 30 * 60 * 1000, sessionGetter, sessionSetter}: SessionConfig = {}){
     if(!sessionGetter || !sessionSetter){
@@ -19,6 +22,8 @@ export function configure({sessionMaxAgeMS = 30 * 60 * 1000, sessionGetter, sess
 
         sessionRead = async (sessionId: string) => sessions.get(sessionId)?.data;
         sessionWrite = async (sessionId: string, data: any) => sessions.set(sessionId, {lastChange: Date.now(), data});
+        sessionMerge = async (sessionId: string, data: any) => sessions.set(sessionId, {lastChange: Date.now(), data: Object.assign({}, sessions.get(sessionId)?.data, data)})
+        sessionDestroy = async (sessionId: string) => sessions.delete(sessionId);
 
         setInterval(() => {
             Array.from(sessions.entries()).forEach(([key, value]) => {
@@ -78,13 +83,24 @@ export async function setSessionData<T>(a: any, b: any, c?: T) {
     return sessionWrite(await getSessionId(a, b),c ? c : b);
 }
 
+export async function mergeSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
+export async function mergeSessionData<T>(req: NextApiRequest, res: NextApiResponse, data: T): Promise<void>;
+export async function mergeSessionData<T>(a: any, b: any, c?: T){
+    if((a && b && !c) || a && !b && !c){
+        throw new Error("No session data given");
+    }
+    return sessionMerge(await getSessionId(a, b),c ? c : b);
+}
+
+export async function destroySession(sessionId: string){
+    return sessionDestroy(sessionId);
+}
+
 export async function getCSRFToken(context: GetServerSidePropsContext): Promise<string>;
 export async function getCSRFToken(req: NextApiRequest, res: NextApiResponse): Promise<string>;
 export async function getCSRFToken(a: any, b?: any): Promise<string>{
     const csrfToken = require("uuid").v4();
-    let sessionData = await getSessionData(a, b);
-    sessionData.csrfToken = csrfToken;
-    await setSessionData(a, b, sessionData);
+    await mergeSessionData(a, b, {csrfToken});
     return csrfToken;
 }
 

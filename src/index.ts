@@ -58,7 +58,7 @@ async function getSessionId(a: any, b?: any) {
             // @ts-ignore tls sockets have the encrypted prop
             secure: !!req?.socket?.encrypted
         }));
-        b(sessionId, {});
+        await sessionWrite(sessionId, {});
     }
     return sessionId;
 }

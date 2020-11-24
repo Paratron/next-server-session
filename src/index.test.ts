@@ -1,4 +1,11 @@
-import { CookieHandler, createMemorySessionStore, getSessionData, getSessionId, SessionStore } from "./index"
+import {
+    CookieHandler,
+    createCookieHandler,
+    createMemorySessionStore,
+    getSessionData,
+    getSessionId,
+    SessionStore
+} from "./index"
 import { NextApiRequest, NextApiResponse } from "next"
 
 function getMocks() {
@@ -64,7 +71,23 @@ test("Memory Session Store", async () => {
 });
 
 describe("Cookie Handler", () => {
+    test("Reader", async () => {
+        const {req, res} = getMocks();
+        const handler = createCookieHandler();
 
+        expect(await handler.read(req)).toBeUndefined();
+        req.headers.cookie = "something=else; nextSession=abc123; some=more";
+        expect(await handler.read(req)).toBe("abc123");
+    });
+
+    test("Writer", async () => {
+        const {req, res} = getMocks();
+        const handler = createCookieHandler();
+
+        res.setHeader = jest.fn();
+        await handler.write(res, "testId")
+        expect(res.setHeader).toHaveBeenCalledWith("Set-Cookie", "nextSession=testId; Path=/; HttpOnly; SameSite=Strict");
+    });
 });
 
 describe("externals", () => {

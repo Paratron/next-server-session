@@ -10,14 +10,8 @@ export interface SessionStore {
 }
 
 export interface CookieHandler {
-    read: (req: NextApiRequest | IncomingMessage) => Promise<string>;
+    read: (req: NextApiRequest | IncomingMessage) => Promise<string | undefined>;
     write: (res: NextApiResponse | ServerResponse, sessionId: string) => Promise<void>
-}
-
-export interface SessionConfig {
-    sessionMaxAgeMS?: number;
-    sessionGetter?: sessionGetterFunction;
-    sessionSetter?: sessionSetterFunction;
 }
 
 const defaultCookieConfig = {
@@ -39,69 +33,23 @@ export function createCookieHandler(cookieName: string = "nextSession", cookieCo
     }
 }
 
-export type sessionGetterFunction = (sessionId: string) => Promise<any>;
-export type sessionSetterFunction = (sessionId: string, data: any) => Promise<any>;
-export type sessionDestroyerFunction = (sessionId: string) => Promise<any>;
+let store : SessionStore;
+let cookie: CookieHandler;
 
-let sessionRead: sessionGetterFunction;
-let sessionWrite: sessionSetterFunction;
-let sessionMerge: sessionSetterFunction;
-let sessionDestroy: sessionDestroyerFunction;
-
-export function configure({ sessionMaxAgeMS = 30 * 60 * 1000, sessionGetter, sessionSetter }: SessionConfig = {}) {
-    if (!sessionGetter || !sessionSetter) {
-        const sessions = new Map();
-
-        sessionRead = async (sessionId: string) => sessions.get(sessionId)?.data;
-        sessionWrite = async (sessionId: string, data: any) => sessions.set(sessionId, {
-            lastChange: Date.now(),
-            data
-        });
-        sessionMerge = async (sessionId: string, data: any) => sessions.set(sessionId, {
-            lastChange: Date.now(),
-            data: Object.assign({}, sessions.get(sessionId)?.data, data)
-        })
-        sessionDestroy = async (sessionId: string) => sessions.delete(sessionId);
-
-        setInterval(() => {
-            Array.from(sessions.entries()).forEach(([key, value]) => {
-                if (value.lastUpdate < Date.now() - sessionMaxAgeMS) {
-                    sessions.delete(key);
-                }
-            });
-        }, 10000);
-    } else {
-        sessionRead = sessionGetter;
-        sessionWrite = sessionSetter;
-    }
+export interface SessionConfig {
+    sessionStore?: SessionStore,
+    cookieHandler?: CookieHandler
 }
-
-export function readSessionCookie(req: NextApiRequest | IncomingMessage, cookie = require("cookie")): string {
-    const cookies = cookie.parse(req.headers.cookie || "");
-    return cookies.nextSession;
-}
-
-export function writeSessionCookie(res: NextApiResponse | ServerResponse, sessionId: string, cookie = require("cookie")): void {
-    res.setHeader("Set-Cookie", cookie.serialize("nextSession", sessionId, {
-        httpOnly: true,
-        sameSite: true,
-        path: "/",
-        // @ts-ignore tls sockets have the encrypted prop
-        secure: !!req?.socket?.encrypted
-    }));
+export function configure({ sessionStore = createMemorySessionStore(), cookieHandler = createCookieHandler() }: SessionConfig = {}) {
+    store = sessionStore;
+    cookie = cookieHandler;
 }
 
 export async function getSessionId(context: GetServerSidePropsContext): Promise<string>;
 export async function getSessionId(req: NextApiRequest, res: NextApiResponse): Promise<string>;
-export async function getSessionId(req: NextApiRequest, res: NextApiResponse, rdSessCookie?: Function, wtSessCookie?: Function, rdSession?: sessionGetterFunction, wtSession?: sessionSetterFunction, uuid?: { v4: Function }): Promise<string>;
 export async function getSessionId(
     a: any,
-    b?: any,
-    rdSessCookie: Function = readSessionCookie,
-    wtSessCookie: Function = writeSessionCookie,
-    rdSession: sessionGetterFunction = sessionRead,
-    wtSession: sessionSetterFunction = sessionWrite,
-    { v4: uuid } = require("uuid")
+    b?: any
 ) {
     let req, res;
     if (b) {
@@ -112,11 +60,11 @@ export async function getSessionId(
         res = a.res as ServerResponse;
     }
 
-    let sessionId = rdSessCookie(req);
-    if (!sessionId || !(await rdSession(sessionId))) {
-        sessionId = uuid();
-        wtSessCookie(res, sessionId);
-        await wtSession(sessionId, {});
+    let sessionId = await cookie.read(req);
+    if (!sessionId || !(await store.get(sessionId))) {
+        sessionId = await store.id();
+        await store.set(sessionId, {});
+        await cookie.write(res, sessionId);
     }
     return sessionId;
 }
@@ -149,7 +97,7 @@ export function createMemorySessionStore(maxSessionAgeMS = 30 * 60 * 1000): Sess
 export async function getSessionData<T = any>(context: GetServerSidePropsContext): Promise<T>;
 export async function getSessionData<T = any>(req: NextApiRequest, res: NextApiResponse): Promise<T>;
 export async function getSessionData<T>(a: any, b?: any): Promise<T> {
-    return sessionRead(await getSessionId(a, b));
+    return store.get(await getSessionId(a, b));
 }
 
 export async function setSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
@@ -158,7 +106,7 @@ export async function setSessionData<T>(a: any, b: any, c?: T) {
     if ((a && b && !c) || a && !b && !c) {
         throw new Error("No session data given");
     }
-    return sessionWrite(await getSessionId(a, b), c ? c : b);
+    return store.set(await getSessionId(a, b), c ? c : b);
 }
 
 export async function mergeSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
@@ -167,11 +115,11 @@ export async function mergeSessionData<T>(a: any, b: any, c?: T) {
     if ((a && b && !c) || a && !b && !c) {
         throw new Error("No session data given");
     }
-    return sessionMerge(await getSessionId(a, b), c ? c : b);
+    return store.merge(await getSessionId(a, b), c ? c : b);
 }
 
 export async function destroySession(sessionId: string) {
-    return sessionDestroy(sessionId);
+    return store.destroy(sessionId);
 }
 
 export async function getCSRFToken(context: GetServerSidePropsContext): Promise<string>;

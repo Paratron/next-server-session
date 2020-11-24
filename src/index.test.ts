@@ -1,4 +1,5 @@
 import {
+    configure,
     CookieHandler,
     createCookieHandler,
     createMemorySessionStore,
@@ -20,12 +21,12 @@ function getMocks() {
     } as unknown as NextApiResponse;
 
     const cookieHandler: CookieHandler = {
-        read: jest.fn(() => Promise.resolve("sessionIdFromCookie")),
+        read: jest.fn(() => Promise.resolve(undefined)),
         write: jest.fn(() => Promise.resolve())
     }
 
     const sessionStore: SessionStore = {
-        id: jest.fn(() => Promise.resolve("sessionId")),
+        id: jest.fn(() => Promise.resolve("sessionIdCode")),
         get: jest.fn(() => Promise.resolve(null)),
         set: jest.fn(() => Promise.resolve()),
         merge: jest.fn(() => Promise.resolve()),
@@ -91,15 +92,44 @@ describe("Cookie Handler", () => {
 });
 
 describe("externals", () => {
+
     describe("getSessionId", () => {
-        it("Returns fresh id, creates cookie when no exists");
-        it("Uses the id from the cookie, if exists");
-        it("Returns fresh id, overwrites cookie when no data in store for cookie id");
+
+        it("Returns fresh id, creates cookie when no exists", async () => {
+            const {req, res, sessionStore, cookieHandler} = getMocks();
+            configure({sessionStore, cookieHandler});
+            expect(await getSessionId(req, res)).toBe("sessionIdCode");
+            expect(sessionStore.set).toHaveBeenCalledWith("sessionIdCode", {});
+            expect(cookieHandler.read).toHaveBeenCalled();
+            expect(cookieHandler.write).toHaveBeenCalledWith(res, "sessionIdCode");
+        });
+
+        it("Uses the id from the cookie, if exists", async () => {
+            const {req, res, sessionStore, cookieHandler} = getMocks();
+            sessionStore.get = jest.fn((sessionId) => Promise.resolve(sessionId === "fromCookie" ? {} : null));
+            cookieHandler.read = jest.fn(() => Promise.resolve("fromCookie"));
+            configure({sessionStore, cookieHandler});
+            expect(await getSessionId(req, res)).toBe("fromCookie");
+            expect(cookieHandler.write).not.toHaveBeenCalled();
+        });
+
+        it("Returns fresh id, overwrites cookie when no data in store for cookie id", async () => {
+            const {req, res, sessionStore, cookieHandler} = getMocks();
+            sessionStore.get = jest.fn((sessionId) => Promise.resolve(sessionId === "sessionIdCode" ? {} : null));
+            cookieHandler.read = jest.fn(() => Promise.resolve("fromCookie"));
+            configure({sessionStore, cookieHandler});
+            expect(await getSessionId(req, res)).toBe("sessionIdCode");
+            expect(cookieHandler.write).toHaveBeenCalled();
+        });
+
     });
 
     describe("getSessionData", () => {
+
         it("Returns empty object when session did not exist before or was invalid");
+
         it("Returns session data");
+
     });
     describe("setSessionData", () => {
         it("Replaces the data stored in the session");

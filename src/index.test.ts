@@ -2,10 +2,10 @@ import {
     configure,
     CookieHandler,
     createCookieHandler,
-    createMemorySessionStore, destroySession,
+    createMemorySessionStore, destroySession, getCSRFToken,
     getSessionData,
     getSessionId, mergeSessionData,
-    SessionStore, setSessionData
+    SessionStore, setSessionData, validateCSRFToken
 } from "./index"
 import { NextApiRequest, NextApiResponse } from "next"
 
@@ -49,24 +49,24 @@ test("Memory Session Store", async () => {
 
     expect(await store.get("unknown")).toBe(null);
 
-    await store.set("id1", {test: true});
-    expect(await store.get("id1")).toMatchObject({test: true});
+    await store.set("id1", { test: true });
+    expect(await store.get("id1")).toMatchObject({ test: true });
 
-    await store.set("id1", {foo: "bar"});
-    expect(await store.get("id1")).toMatchObject({foo: "bar"});
+    await store.set("id1", { foo: "bar" });
+    expect(await store.get("id1")).toMatchObject({ foo: "bar" });
 
-    await store.merge("id1", {some: "more"});
-    expect(await store.get("id1")).toMatchObject({foo: "bar", some: "more"});
+    await store.merge("id1", { some: "more" });
+    expect(await store.get("id1")).toMatchObject({ foo: "bar", some: "more" });
 
-    await store.merge("previouslyUnknown", {something: "new"});
-    expect(await store.get("previouslyUnknown")).toMatchObject({something: "new"});
+    await store.merge("previouslyUnknown", { something: "new" });
+    expect(await store.get("previouslyUnknown")).toMatchObject({ something: "new" });
 
     await store.destroy("id1");
     expect(await store.get("id1")).toBe(null);
 
     const now = Date.now();
     jest.setSystemTime(now);
-    await store.set("timeoutTest", {exists: true});
+    await store.set("timeoutTest", { exists: true });
     jest.setSystemTime(now + 31 * 60 * 1000);
     jest.advanceTimersByTime(10000);
     expect(await store.get("timeoutTest")).toBe(null);
@@ -74,7 +74,7 @@ test("Memory Session Store", async () => {
 
 describe("Cookie Handler", () => {
     test("Reader", async () => {
-        const {req, res} = getMocks();
+        const { req, res } = getMocks();
         const handler = createCookieHandler();
 
         expect(await handler.read(req)).toBeUndefined();
@@ -83,7 +83,7 @@ describe("Cookie Handler", () => {
     });
 
     test("Writer", async () => {
-        const {res} = getMocks();
+        const { res } = getMocks();
         const handler = createCookieHandler();
 
         res.setHeader = jest.fn();
@@ -92,7 +92,7 @@ describe("Cookie Handler", () => {
     });
 
     test("Deleter", async () => {
-        const {res} = getMocks();
+        const { res } = getMocks();
         const handler = createCookieHandler();
 
         res.setHeader = jest.fn();
@@ -106,8 +106,8 @@ describe("externals", () => {
     describe("getSessionId", () => {
 
         it("Returns fresh id, creates cookie when no exists", async () => {
-            const {req, res, sessionStore, cookieHandler} = getMocks();
-            configure({sessionStore, cookieHandler});
+            const { req, res, sessionStore, cookieHandler } = getMocks();
+            configure({ sessionStore, cookieHandler });
             expect(await getSessionId(req, res)).toBe("sessionIdCode");
             expect(sessionStore.set).toHaveBeenCalledWith("sessionIdCode", {});
             expect(cookieHandler.read).toHaveBeenCalled();
@@ -115,19 +115,19 @@ describe("externals", () => {
         });
 
         it("Uses the id from the cookie, if exists", async () => {
-            const {req, res, sessionStore, cookieHandler} = getMocks();
+            const { req, res, sessionStore, cookieHandler } = getMocks();
             sessionStore.get = jest.fn((sessionId) => Promise.resolve(sessionId === "fromCookie" ? {} : null));
             cookieHandler.read = jest.fn(() => Promise.resolve("fromCookie"));
-            configure({sessionStore, cookieHandler});
+            configure({ sessionStore, cookieHandler });
             expect(await getSessionId(req, res)).toBe("fromCookie");
             expect(cookieHandler.write).not.toHaveBeenCalled();
         });
 
         it("Returns fresh id, overwrites cookie when no data in store for cookie id", async () => {
-            const {req, res, sessionStore, cookieHandler} = getMocks();
+            const { req, res, sessionStore, cookieHandler } = getMocks();
             sessionStore.get = jest.fn((sessionId) => Promise.resolve(sessionId === "sessionIdCode" ? {} : null));
             cookieHandler.read = jest.fn(() => Promise.resolve("fromCookie"));
-            configure({sessionStore, cookieHandler});
+            configure({ sessionStore, cookieHandler });
             expect(await getSessionId(req, res)).toBe("sessionIdCode");
             expect(cookieHandler.write).toHaveBeenCalled();
         });
@@ -137,16 +137,16 @@ describe("externals", () => {
     describe("getSessionData", () => {
 
         it("Returns data from new or existing sessions", async () => {
-            const {req, res, sessionStore, cookieHandler} = getMocks();
-            sessionStore.get = jest.fn((sessionId) => Promise.resolve(sessionId === "1" ? {session: true} : null));
+            const { req, res, sessionStore, cookieHandler } = getMocks();
+            sessionStore.get = jest.fn((sessionId) => Promise.resolve(sessionId === "1" ? { session: true } : null));
             cookieHandler.read = jest.fn(() => Promise.resolve("fromCookie"));
             sessionStore.id = jest.fn(() => Promise.resolve("1"));
-            configure({sessionStore, cookieHandler});
+            configure({ sessionStore, cookieHandler });
             expect(await getSessionData(req, res)).toMatchObject({});
             expect(cookieHandler.write).toHaveBeenCalled();
 
             cookieHandler.read = jest.fn(() => Promise.resolve("1"));
-            expect(await getSessionData(req, res)).toMatchObject({session: true});
+            expect(await getSessionData(req, res)).toMatchObject({ session: true });
             expect(cookieHandler.write).toHaveBeenCalledTimes(1);
         });
 
@@ -154,37 +154,39 @@ describe("externals", () => {
 
     describe("setSessionData", () => {
         it("Replaces the data stored in the session", async () => {
-            const {req, res, cookieHandler} = getMocks();
+            const { req, res, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
-            configure({sessionStore, cookieHandler});
-            await setSessionData(req, res, {foo: "bar"});
-            expect(await sessionStore.get("uuid")).toMatchObject({foo: "bar"});
-            await setSessionData(req, res, {a: "b"});
-            expect(await sessionStore.get("uuid")).toMatchObject({a: "b"});
+            cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
+            configure({ sessionStore, cookieHandler });
+            await setSessionData(req, res, { foo: "bar" });
+            expect(await sessionStore.get("uuid")).toMatchObject({ foo: "bar" });
+            await setSessionData(req, res, { a: "b" });
+            expect(await sessionStore.get("uuid")).toMatchObject({ a: "b" });
         });
     });
 
     describe("mergeSessionData", () => {
         it("Merges new data with existing data in the session", async () => {
-            const {req, res, cookieHandler} = getMocks();
+            const { req, res, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
-            configure({sessionStore, cookieHandler});
-            await mergeSessionData(req, res, {foo: "bar"});
-            expect(await sessionStore.get("uuid")).toMatchObject({foo: "bar"});
             cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
-            await mergeSessionData(req, res, {a: "b"});
-            expect(await sessionStore.get("uuid")).toMatchObject({a: "b", foo: "bar"});
+            configure({ sessionStore, cookieHandler });
+            await mergeSessionData(req, res, { foo: "bar" });
+            expect(await sessionStore.get("uuid")).toMatchObject({ foo: "bar" });
+            await mergeSessionData(req, res, { a: "b" });
+            expect(await sessionStore.get("uuid")).toMatchObject({ a: "b", foo: "bar" });
         });
     });
     describe("destroySession", () => {
         it("Removes the session data completely", async () => {
-            const {req, res, cookieHandler} = getMocks();
+            const { req, res, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
-            configure({sessionStore, cookieHandler});
-            await setSessionData(req, res, {foo: "bar"});
+            cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
+            configure({ sessionStore, cookieHandler });
+            await setSessionData(req, res, { foo: "bar" });
             await destroySession(req, res);
             expect(cookieHandler.destroy).toHaveBeenCalled();
             expect(await sessionStore.get("uuid")).toBe(null);
@@ -192,9 +194,33 @@ describe("externals", () => {
     });
 
     describe("getCSRFToken", () => {
-        it("Creates a fresh token and stores it in the session");
+        it("Creates a fresh token and stores it in the session", async () => {
+            const { req, res, cookieHandler } = getMocks();
+            const sessionStore = createMemorySessionStore();
+            sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
+            cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
+            configure({ sessionStore, cookieHandler });
+            const token = await getCSRFToken(req, res);
+            expect(typeof token).toBe("string");
+            expect(await sessionStore.get("uuid")).toMatchObject({ csrfToken: token })
+
+            const token2 = await getCSRFToken(req, res);
+            expect(token === token2).toBe(false);
+            expect(await sessionStore.get("uuid")).toMatchObject({ csrfToken: token2 })
+        });
     });
-    describe("useCSRFToken", () => {
-        it("Validates the token and removes it from the session");
+    describe("validateCSRFToken", () => {
+        it("Validates the token and removes it from the session", async () => {
+            const { req, res, cookieHandler } = getMocks();
+            const sessionStore = createMemorySessionStore();
+            sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
+            cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
+            configure({ sessionStore, cookieHandler });
+            const token = await getCSRFToken(req, res);
+            expect(await sessionStore.get("uuid")).toMatchObject({ csrfToken: token })
+            expect(await validateCSRFToken(req, res, token)).toBe(true);
+            expect(await validateCSRFToken(req, res, token)).toBe(false);
+            expect(await sessionStore.get("uuid")).toMatchObject({});
+        });
     });
 });

@@ -145,11 +145,11 @@ export async function getCSRFToken(a: any, b?: any): Promise<string> {
     return csrfToken;
 }
 
-export async function useCSRFToken(context: GetServerSidePropsContext, token: string): Promise<boolean>;
-export async function useCSRFToken(req: NextApiRequest, res: NextApiResponse, token: string): Promise<boolean>;
-export async function useCSRFToken(a: any, b: any, c?: string): Promise<boolean> {
+export async function validateCSRFToken(context: GetServerSidePropsContext, token: string): Promise<boolean>;
+export async function validateCSRFToken(req: NextApiRequest, res: NextApiResponse, token: string): Promise<boolean>;
+export async function validateCSRFToken(a: any, b: any, c?: string): Promise<boolean> {
     let sessionData = await getSessionData(a, b);
-    const wasValid = sessionData.csrfToken === c ? c : b;
+    const wasValid = sessionData.csrfToken === (c ? c : b);
     delete sessionData.csrfToken;
     await setSessionData(a, b, sessionData);
     return wasValid;

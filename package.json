@@ -29,11 +29,15 @@
   },
   "homepage": "https://github.com/Paratron/next-server-session#readme",
   "devDependencies": {
+    "@types/cookie": "0.4.0",
     "@types/jest": "26.0.15",
     "@types/node": "14.14.9",
     "jest": "26.6.3",
     "next": "10.0.2",
     "ts-jest": "26.4.4",
     "typescript": "4.1.2"
+  },
+  "dependencies": {
+    "cookie": "0.4.1"
   }
 }

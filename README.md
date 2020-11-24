@@ -63,7 +63,7 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
 Calling `getSessionData` always returns an object. If no session exists, a new session will be created and an empty object will be returned.
 
 The `getCSRFToken` function returns a random string you can send along with form data or ajax requests to prevent cross site request forgery.
-The token will be remembered in the session and a call to `useCSRFToken` will validate if its indeed the currently valid token.
+The token will be remembered in the session and a call to `validateCSRFToken` will validate if its indeed the currently valid token.
 
 ### Inside API routes
 

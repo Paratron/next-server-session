@@ -1,6 +1,19 @@
 import { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from "next"
 import { IncomingMessage, ServerResponse } from "http";
 
+export interface SessionStore {
+    id: () => Promise<string>;
+    get: (sessionId: string) => Promise<any>;
+    set: (sessionId: string, data: any) => Promise<any>;
+    merge: (sessionId: string, data: any) => Promise<any>;
+    destroy: (sessionId: string) => Promise<any>
+}
+
+export interface CookieHandler {
+    read: (cookieName: string) => Promise<string>;
+    write: (cookieName: string, sessionId: string) => Promise<void>
+}
+
 export interface SessionConfig {
     sessionMaxAgeMS?: number;
     sessionGetter?: sessionGetterFunction;
@@ -81,6 +94,31 @@ export async function getSessionId(
         await wtSession(sessionId, {});
     }
     return sessionId;
+}
+
+export function createMemorySessionStore(maxSessionAgeMS = 30 * 60 * 1000): SessionStore {
+    const { v4: uuid } = require("uuid");
+
+    const store = new Map();
+
+    setInterval(() => {
+        Array.from(store.entries()).forEach(([sessionId, value]) => {
+            if (value.lastUpdate < Date.now() - maxSessionAgeMS) {
+                store.delete(sessionId);
+            }
+        });
+    }, 10000);
+
+    return {
+        get: async (sessionId: string) => store.get(sessionId) ? store.get(sessionId).data : null,
+        set: async (sessionId: string, data: any) => store.set(sessionId, { lastUpdate: Date.now(), data }),
+        merge: async (sessionId: string, data: any) => store.set(sessionId, {
+            lastUpdate: Date.now(),
+            data: Object.assign({}, store.get(sessionId) ? store.get(sessionId).data : {}, data)
+        }),
+        destroy: async (sessionId: string) => store.delete(sessionId),
+        id: async () => uuid()
+    };
 }
 
 export async function getSessionData<T=any>(context:GetServerSidePropsContext): Promise<T>;

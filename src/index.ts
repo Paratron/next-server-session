@@ -32,7 +32,7 @@ export function createCookieHandler(cookieName: string = "nextSession", cookieCo
             res.setHeader("Set-Cookie", require("cookie").serialize(cookieName, sessionId, cookieConfig));
         },
         destroy: async (res) => {
-            res.setHeader("Set-Cookie", require("cookie").serialize(cookieName, "", Object.assign({}, cookieConfig, {expires: new Date(0)})));
+            res.setHeader("Set-Cookie", require("cookie").serialize(cookieName, "", Object.assign({}, cookieConfig, { expires: new Date(0) })));
         }
     }
 }
@@ -50,7 +50,7 @@ export function configure({ sessionStore = createMemorySessionStore(), cookieHan
     cookie = cookieHandler;
 }
 
-function getReqRes(a: any, b?: any): [NextApiRequest | IncomingMessage, NextApiResponse | ServerResponse]{
+function getReqRes(a: any, b?: any): [NextApiRequest | IncomingMessage, NextApiResponse | ServerResponse] {
     let req, res;
     if (b) {
         req = a as NextApiRequest;
@@ -93,7 +93,15 @@ export function createMemorySessionStore(maxSessionAgeMS = 30 * 60 * 1000): Sess
     }, 10000);
 
     return {
-        get: async (sessionId: string) => store.get(sessionId) ? store.get(sessionId).data : null,
+        get: async (sessionId: string) => {
+            let value = store.get(sessionId);
+            if (value) {
+                value.lastUpdate = Date.now();
+                store.set(sessionId, value);
+                return value.data;
+            }
+            return null;
+        },
         set: async (sessionId: string, data: any) => store.set(sessionId, { lastUpdate: Date.now(), data }),
         merge: async (sessionId: string, data: any) => store.set(sessionId, {
             lastUpdate: Date.now(),
@@ -131,7 +139,7 @@ export async function mergeSessionData<T>(a: any, b: any, c?: T) {
 export async function destroySession(context: GetServerSidePropsContext): Promise<void>;
 export async function destroySession(req: NextApiRequest, res: NextApiResponse): Promise<void>;
 export async function destroySession(a: any, b?: any) {
-    const [,res] = getReqRes(a, b);
+    const [, res] = getReqRes(a, b);
     const sessionId = await getSessionId(a, b);
     await store.destroy(sessionId);
     await cookie.destroy(res);

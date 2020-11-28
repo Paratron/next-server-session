@@ -4,7 +4,7 @@ import {
     createCookieHandler,
     createMemorySessionStore, destroySession, getCSRFToken,
     getSessionData,
-    getSessionId, mergeSessionData,
+    getSessionId, replaceSessionData,
     SessionStore, setSessionData, validateCSRFToken
 } from "./index"
 import { NextApiRequest, NextApiResponse } from "next"
@@ -126,13 +126,13 @@ describe("externals", () => {
             expect(cookieHandler.write).not.toHaveBeenCalled();
         });
 
-        it("Returns fresh id, overwrites cookie when no data in store for cookie id", async () => {
+        it("Returns fresh id, removes cookie when no data in store for cookie id", async () => {
             const { req, res, sessionStore, cookieHandler } = getMocks();
             sessionStore.get = jest.fn((sessionId) => Promise.resolve(sessionId === "sessionIdCode" ? {} : null));
             cookieHandler.read = jest.fn(() => Promise.resolve("fromCookie"));
             configure({ sessionStore, cookieHandler });
             expect(await getSessionId(req, res)).toBe("sessionIdCode");
-            expect(cookieHandler.write).toHaveBeenCalled();
+            expect(cookieHandler.destroy).toHaveBeenCalled();
         });
 
     });
@@ -146,17 +146,30 @@ describe("externals", () => {
             sessionStore.id = jest.fn(() => Promise.resolve("1"));
             configure({ sessionStore, cookieHandler });
             expect(await getSessionData(req, res)).toMatchObject({});
-            expect(cookieHandler.write).toHaveBeenCalled();
+            expect(cookieHandler.write).not.toHaveBeenCalled();
 
             cookieHandler.read = jest.fn(() => Promise.resolve("1"));
             expect(await getSessionData(req, res)).toMatchObject({ session: true });
-            expect(cookieHandler.write).toHaveBeenCalledTimes(1);
         });
 
     });
 
-    describe("setSessionData", () => {
+    describe("replaceSessionData", () => {
         it("Replaces the data stored in the session", async () => {
+            const { req, res, cookieHandler } = getMocks();
+            const sessionStore = createMemorySessionStore();
+            sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
+            cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
+            configure({ sessionStore, cookieHandler });
+            await replaceSessionData(req, res, { foo: "bar" });
+            expect(await sessionStore.get("uuid")).toMatchObject({ foo: "bar" });
+            await replaceSessionData(req, res, { a: "b" });
+            expect(await sessionStore.get("uuid")).toMatchObject({ a: "b" });
+        });
+    });
+
+    describe("setSessionData", () => {
+        it("Merges new data with existing data in the session", async () => {
             const { req, res, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
@@ -165,20 +178,6 @@ describe("externals", () => {
             await setSessionData(req, res, { foo: "bar" });
             expect(await sessionStore.get("uuid")).toMatchObject({ foo: "bar" });
             await setSessionData(req, res, { a: "b" });
-            expect(await sessionStore.get("uuid")).toMatchObject({ a: "b" });
-        });
-    });
-
-    describe("mergeSessionData", () => {
-        it("Merges new data with existing data in the session", async () => {
-            const { req, res, cookieHandler } = getMocks();
-            const sessionStore = createMemorySessionStore();
-            sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
-            cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
-            configure({ sessionStore, cookieHandler });
-            await mergeSessionData(req, res, { foo: "bar" });
-            expect(await sessionStore.get("uuid")).toMatchObject({ foo: "bar" });
-            await mergeSessionData(req, res, { a: "b" });
             expect(await sessionStore.get("uuid")).toMatchObject({ a: "b", foo: "bar" });
         });
     });

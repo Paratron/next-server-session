@@ -104,13 +104,16 @@ describe("Cookie Handler", () => {
 describe("externals", () => {
 
     describe("getSessionId", () => {
-
-        it("Returns fresh id, creates cookie when no exists", async () => {
+        it("Returns fresh id, creates cookie, if requested", async () => {
             const { req, res, sessionStore, cookieHandler } = getMocks();
             configure({ sessionStore, cookieHandler });
             expect(await getSessionId(req, res)).toBe("sessionIdCode");
-            expect(sessionStore.set).toHaveBeenCalledWith("sessionIdCode", {});
+            expect(sessionStore.set).not.toHaveBeenCalled();
             expect(cookieHandler.read).toHaveBeenCalled();
+            expect(cookieHandler.write).not.toHaveBeenCalled();
+
+            expect(await getSessionId(req, res, true)).toBe("sessionIdCode");
+            expect(sessionStore.set).toHaveBeenCalledWith("sessionIdCode", {});
             expect(cookieHandler.write).toHaveBeenCalledWith(res, "sessionIdCode");
         });
 

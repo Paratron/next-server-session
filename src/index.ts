@@ -63,18 +63,26 @@ function getReqRes(a: any, b?: any): [NextApiRequest | IncomingMessage, NextApiR
     return [req, res];
 }
 
-export async function getSessionId(context: GetServerSidePropsContext): Promise<string>;
-export async function getSessionId(req: NextApiRequest, res: NextApiResponse): Promise<string>;
+export async function getSessionId(context: GetServerSidePropsContext, persistSession?: boolean): Promise<string>;
+export async function getSessionId(req: NextApiRequest, res: NextApiResponse, persistSession?: boolean): Promise<string>;
 export async function getSessionId(
     a: any,
-    b?: any
+    b?: any,
+    persistSession?: boolean
 ) {
     const [req, res] = getReqRes(a, b);
-    let sessionId = await cookie.read(req);
+    let sessionIdFromCookie;
+    let sessionId = sessionIdFromCookie = await cookie.read(req);
     if (!sessionId || !(await store.get(sessionId))) {
         sessionId = await store.id();
-        await store.set(sessionId, {});
-        await cookie.write(res, sessionId);
+        if(persistSession){
+            await store.set(sessionId, {});
+            await cookie.write(res, sessionId);
+        } else {
+            if(sessionIdFromCookie){
+                await cookie.destroy(res);
+            }
+        }
     }
     return sessionId;
 }
@@ -118,22 +126,22 @@ export async function getSessionData<T>(a: any, b?: any): Promise<T> {
     return store.get(await getSessionId(a, b));
 }
 
+export async function replaceSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
+export async function replaceSessionData<T>(req: NextApiRequest, res: NextApiResponse, data: T): Promise<void>;
+export async function replaceSessionData<T>(a: any, b: any, c?: T) {
+    if ((a && b && !c) || a && !b && !c) {
+        throw new Error("No session data given");
+    }
+    return store.set(await getSessionId(a, b, true), c ? c : b);
+}
+
 export async function setSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
 export async function setSessionData<T>(req: NextApiRequest, res: NextApiResponse, data: T): Promise<void>;
 export async function setSessionData<T>(a: any, b: any, c?: T) {
     if ((a && b && !c) || a && !b && !c) {
         throw new Error("No session data given");
     }
-    return store.set(await getSessionId(a, b), c ? c : b);
-}
-
-export async function mergeSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
-export async function mergeSessionData<T>(req: NextApiRequest, res: NextApiResponse, data: T): Promise<void>;
-export async function mergeSessionData<T>(a: any, b: any, c?: T) {
-    if ((a && b && !c) || a && !b && !c) {
-        throw new Error("No session data given");
-    }
-    return store.merge(await getSessionId(a, b), c ? c : b);
+    return store.merge(await getSessionId(a, b, true), c ? c : b);
 }
 
 export async function destroySession(context: GetServerSidePropsContext): Promise<void>;
@@ -149,7 +157,7 @@ export async function getCSRFToken(context: GetServerSidePropsContext): Promise<
 export async function getCSRFToken(req: NextApiRequest, res: NextApiResponse): Promise<string>;
 export async function getCSRFToken(a: any, b?: any): Promise<string> {
     const csrfToken = require("uuid").v4();
-    await mergeSessionData(a, b, { csrfToken });
+    await setSessionData(a, b, { csrfToken });
     return csrfToken;
 }
 

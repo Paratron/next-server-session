@@ -123,7 +123,7 @@ export function createMemorySessionStore(maxSessionAgeMS = 30 * 60 * 1000): Sess
 export async function getSessionData<T = any>(context: GetServerSidePropsContext): Promise<T>;
 export async function getSessionData<T = any>(req: NextApiRequest, res: NextApiResponse): Promise<T>;
 export async function getSessionData<T>(a: any, b?: any): Promise<T> {
-    return store.get(await getSessionId(a, b));
+    return await store.get(await getSessionId(a, b)) || {};
 }
 
 export async function replaceSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;

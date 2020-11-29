@@ -138,6 +138,11 @@ describe("externals", () => {
     });
 
     describe("getSessionData", () => {
+        it("Returns an object on new sessions", async () => {
+            const { req, res, sessionStore, cookieHandler } = getMocks();
+            configure({ sessionStore, cookieHandler });
+            expect(await getSessionData(req, res)).toMatchObject({});
+        });
 
         it("Returns data from new or existing sessions", async () => {
             const { req, res, sessionStore, cookieHandler } = getMocks();

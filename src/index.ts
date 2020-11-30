@@ -24,7 +24,7 @@ function getReqRes(a: any, b?: any): [NextApiRequest | IncomingMessage, NextApiR
         req = a.req as IncomingMessage;
         res = a.res as ServerResponse;
     } else {
-        if(b.json){
+        if(b.json || b.socket){
             req = a as NextApiRequest;
             res = b as NextApiResponse;
         } else {

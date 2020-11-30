@@ -88,7 +88,9 @@ export async function pluckSessionProperty<T>(a: any, b?: any, c?: string): Prom
 export async function replaceSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
 export async function replaceSessionData<T>(req: NextApiRequest, res: NextApiResponse, data: T): Promise<void>;
 export async function replaceSessionData<T>(a: any, b: any, c?: T) {
-    if ((a && b && !c) || a && !b && !c) {
+    const [, res] = getReqRes(a, b);
+    const data = b === res ? c : b;
+    if (data === undefined) {
         throw new Error("No session data given");
     }
     return store.set(await getSessionId(a, b, true), c ? c : b);
@@ -97,7 +99,9 @@ export async function replaceSessionData<T>(a: any, b: any, c?: T) {
 export async function setSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
 export async function setSessionData<T>(req: NextApiRequest, res: NextApiResponse, data: T): Promise<void>;
 export async function setSessionData<T>(a: any, b: any, c?: T) {
-    if ((a && b && !c) || a && !b && !c) {
+    const [req, res] = getReqRes(a, b);
+    const data = b === res ? c : b;
+    if (data === undefined) {
         throw new Error("No session data given");
     }
     return store.merge(await getSessionId(a, b, true), c ? c : b);

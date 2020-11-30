@@ -70,13 +70,13 @@ export async function pluckSessionProperty<T = any>(context: GetServerSidePropsC
 export async function pluckSessionProperty<T = any>(req: NextApiRequest, res: NextApiResponse, propertyName: string): Promise<T | null>;
 export async function pluckSessionProperty<T>(a: any, b?: any, c?: string): Promise<T | null> {
     const [req, res] = getReqRes(a, b);
-    const propertyName = isContext(a) ? b : c;
+    const propertyName = isContext(a) ? b || c : c;
 
     if (!propertyName) {
         throw new Error("No propertyName given");
     }
 
-    let data = await getSessionData(a, b);
+    let data = await getSessionData(req as NextApiRequest, res as NextApiResponse);
 
     if(data[propertyName] === undefined){
         return null;
@@ -129,10 +129,10 @@ export async function getCSRFToken(a: any, b?: any): Promise<string> {
 export async function validateCSRFToken(context: GetServerSidePropsContext, token: string): Promise<boolean>;
 export async function validateCSRFToken(req: NextApiRequest, res: NextApiResponse, token: string): Promise<boolean>;
 export async function validateCSRFToken(a: any, b: any, c?: string): Promise<boolean> {
-    const [, res] = getReqRes(a, b);
-    let sessionData = await getSessionData(a, b);
-    const wasValid = sessionData.csrfToken === (b === res ? c : b);
+    const [req, res] = getReqRes(a, b);
+    let sessionData = await getSessionData(req as NextApiRequest, res as NextApiResponse);
+    const wasValid = sessionData.csrfToken === (isContext(a) ? b : c);
     delete sessionData.csrfToken;
-    await setSessionData(a, b, sessionData);
+    await setSessionData(req as NextApiRequest, res as NextApiResponse, sessionData);
     return wasValid;
 }

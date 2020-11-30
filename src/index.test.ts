@@ -152,15 +152,15 @@ describe("externals", () => {
         });
 
         it("Returns property and removes it from session object", async () => {
-            const { req, res, cookieHandler } = getMocks();
+            const { req, res, context, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = async () => "id";
             configure({sessionStore, cookieHandler});
             await setSessionData(req, res, {test: "hello"});
             expect(await getSessionData(req, res)).toMatchObject({test: "hello"});
-            expect(await pluckSessionProperty<string>(req, res, "test")).toBe("hello");
+            expect(await pluckSessionProperty<string>(context, "test")).toBe("hello");
             expect(await pluckSessionProperty(req, res, "test")).toBe(null);
-            expect(await getSessionData(req, res)).toMatchObject({});
+            expect(await getSessionData(context)).toMatchObject({});
         });
     });
 
@@ -172,7 +172,7 @@ describe("externals", () => {
         });
 
         it("Returns data from new or existing sessions", async () => {
-            const { req, res, sessionStore, cookieHandler } = getMocks();
+            const { req, res, context, sessionStore, cookieHandler } = getMocks();
             sessionStore.get = jest.fn((sessionId) => Promise.resolve(sessionId === "1" ? { session: true } : null));
             cookieHandler.read = jest.fn(() => Promise.resolve("fromCookie"));
             sessionStore.id = jest.fn(() => Promise.resolve("1"));
@@ -181,33 +181,33 @@ describe("externals", () => {
             expect(cookieHandler.write).not.toHaveBeenCalled();
 
             cookieHandler.read = jest.fn(() => Promise.resolve("1"));
-            expect(await getSessionData(req, res)).toMatchObject({ session: true });
+            expect(await getSessionData(context)).toMatchObject({ session: true });
         });
 
     });
 
     describe("replaceSessionData", () => {
         it("Replaces the data stored in the session", async () => {
-            const { req, res, cookieHandler } = getMocks();
+            const { req, res, context, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
             cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
             configure({ sessionStore, cookieHandler });
             await replaceSessionData(req, res, { foo: "bar" });
             expect(await sessionStore.get("uuid")).toMatchObject({ foo: "bar" });
-            await replaceSessionData(req, res, { a: "b" });
+            await replaceSessionData(context, { a: "b" });
             expect(await sessionStore.get("uuid")).toMatchObject({ a: "b" });
         });
     });
 
     describe("setSessionData", () => {
         it("Merges new data with existing data in the session", async () => {
-            const { req, res, cookieHandler } = getMocks();
+            const { req, res, context, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
             cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
             configure({ sessionStore, cookieHandler });
-            await setSessionData(req, res, { foo: "bar" });
+            await setSessionData(context, { foo: "bar" });
             expect(await sessionStore.get("uuid")).toMatchObject({ foo: "bar" });
             await setSessionData(req, res, { a: "b" });
             expect(await sessionStore.get("uuid")).toMatchObject({ a: "b", foo: "bar" });
@@ -215,13 +215,13 @@ describe("externals", () => {
     });
     describe("destroySession", () => {
         it("Removes the session data completely", async () => {
-            const { req, res, cookieHandler } = getMocks();
+            const { req, res, context, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
             cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
             configure({ sessionStore, cookieHandler });
             await setSessionData(req, res, { foo: "bar" });
-            await destroySession(req, res);
+            await destroySession(context);
             expect(cookieHandler.destroy).toHaveBeenCalled();
             expect(await sessionStore.get("uuid")).toBe(null);
         });
@@ -229,7 +229,7 @@ describe("externals", () => {
 
     describe("getCSRFToken", () => {
         it("Creates a fresh token and stores it in the session", async () => {
-            const { req, res, cookieHandler } = getMocks();
+            const { req, res, context, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
             cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
@@ -238,21 +238,21 @@ describe("externals", () => {
             expect(typeof token).toBe("string");
             expect(await sessionStore.get("uuid")).toMatchObject({ csrfToken: token })
 
-            const token2 = await getCSRFToken(req, res);
+            const token2 = await getCSRFToken(context);
             expect(token === token2).toBe(false);
             expect(await sessionStore.get("uuid")).toMatchObject({ csrfToken: token2 })
         });
     });
     describe("validateCSRFToken", () => {
         it("Validates the token and removes it from the session", async () => {
-            const { req, res, cookieHandler } = getMocks();
+            const { req, res, context, cookieHandler } = getMocks();
             const sessionStore = createMemorySessionStore();
             sessionStore.id = jest.fn(() => Promise.resolve(("uuid")));
             cookieHandler.read = jest.fn(() => Promise.resolve("uuid"));
             configure({ sessionStore, cookieHandler });
             const token = await getCSRFToken(req, res);
             expect(await sessionStore.get("uuid")).toMatchObject({ csrfToken: token })
-            expect(await validateCSRFToken(req, res, token)).toBe(true);
+            expect(await validateCSRFToken(context, token)).toBe(true);
             expect(await validateCSRFToken(req, res, token)).toBe(false);
             expect(await sessionStore.get("uuid")).toMatchObject({});
         });

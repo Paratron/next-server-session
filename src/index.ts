@@ -18,12 +18,16 @@ export function configure({ sessionStore = createMemorySessionStore(), cookieHan
 
 function getReqRes(a: any, b?: any): [NextApiRequest | IncomingMessage, NextApiResponse | ServerResponse] {
     let req, res;
-    if (b) {
-        req = a as NextApiRequest;
-        res = b as NextApiResponse;
-    } else {
+    if (a.req && a.res) {
         req = a.req as IncomingMessage;
         res = a.res as ServerResponse;
+    } else {
+        if(b.json){
+            req = a as NextApiRequest;
+            res = b as NextApiResponse;
+        } else {
+            throw new Error("Either pass a GetServerSidePropsContext as first argument, OR NextApiRequest and NextApiResponse as first and second argument.");
+        }
     }
 
     return [req, res];

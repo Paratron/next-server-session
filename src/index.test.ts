@@ -17,7 +17,7 @@ function getMocks() {
     } as unknown as NextApiRequest;
 
     const res = {
-        setHeader: jest.fn()
+        json: jest.fn()
     } as unknown as NextApiResponse;
 
     const cookieHandler: CookieHandler = {

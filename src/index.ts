@@ -16,6 +16,8 @@ export function configure({ sessionStore = createMemorySessionStore(), cookieHan
     cookie = cookieHandler;
 }
 
+const isContext = (v: any): boolean => v.req && v.res;
+
 function getReqRes(a: any, b?: any): [NextApiRequest | IncomingMessage, NextApiResponse | ServerResponse] {
     let req, res;
     if (a.req && a.res) {
@@ -41,7 +43,7 @@ export async function getSessionId(
     c?: boolean
 ) {
     const [req, res] = getReqRes(a, b);
-    const persistSession = b !== res ? b : c;
+    const persistSession = isContext(a) ? b : c;
     let sessionIdFromCookie;
     let sessionId = sessionIdFromCookie = await cookie.read(req);
     if (!sessionId || !(await store.get(sessionId))) {
@@ -68,7 +70,7 @@ export async function pluckSessionProperty<T = any>(context: GetServerSidePropsC
 export async function pluckSessionProperty<T = any>(req: NextApiRequest, res: NextApiResponse, propertyName: string): Promise<T | null>;
 export async function pluckSessionProperty<T>(a: any, b?: any, c?: string): Promise<T | null> {
     const [req, res] = getReqRes(a, b);
-    const propertyName = b !== res ? b : c;
+    const propertyName = isContext(a) ? b : c;
 
     if (!propertyName) {
         throw new Error("No propertyName given");
@@ -99,8 +101,7 @@ export async function replaceSessionData<T>(a: any, b: any, c?: T) {
 export async function setSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
 export async function setSessionData<T>(req: NextApiRequest, res: NextApiResponse, data: T): Promise<void>;
 export async function setSessionData<T>(a: any, b: any, c?: T) {
-    const [req, res] = getReqRes(a, b);
-    const data = b === res ? c : b;
+    const data = isContext(a) ? b : c;
     if (data === undefined) {
         throw new Error("No session data given");
     }
@@ -120,15 +121,17 @@ export async function getCSRFToken(context: GetServerSidePropsContext): Promise<
 export async function getCSRFToken(req: NextApiRequest, res: NextApiResponse): Promise<string>;
 export async function getCSRFToken(a: any, b?: any): Promise<string> {
     const csrfToken = require("uuid").v4();
-    await setSessionData(a, b, { csrfToken });
+    const [req, res] = getReqRes(a, b);
+    await setSessionData(req as NextApiRequest, res as NextApiResponse, { csrfToken });
     return csrfToken;
 }
 
 export async function validateCSRFToken(context: GetServerSidePropsContext, token: string): Promise<boolean>;
 export async function validateCSRFToken(req: NextApiRequest, res: NextApiResponse, token: string): Promise<boolean>;
 export async function validateCSRFToken(a: any, b: any, c?: string): Promise<boolean> {
+    const [, res] = getReqRes(a, b);
     let sessionData = await getSessionData(a, b);
-    const wasValid = sessionData.csrfToken === (c ? c : b);
+    const wasValid = sessionData.csrfToken === (b === res ? c : b);
     delete sessionData.csrfToken;
     await setSessionData(a, b, sessionData);
     return wasValid;

@@ -1,13 +1,12 @@
 import {
     configure,
-    CookieHandler,
-    createCookieHandler,
     createMemorySessionStore, destroySession, getCSRFToken,
     getSessionData,
     getSessionId, replaceSessionData,
     SessionStore, setSessionData, validateCSRFToken
 } from "./index"
 import { NextApiRequest, NextApiResponse } from "next"
+import { CookieHandler, createCookieHandler } from "./cookieHandler"
 
 function getMocks() {
     const req = {

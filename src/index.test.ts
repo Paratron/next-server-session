@@ -5,7 +5,7 @@ import {
     getSessionId, pluckSessionProperty, replaceSessionData,
     setSessionData, validateCSRFToken
 } from "./index"
-import { NextApiRequest, NextApiResponse } from "next"
+import { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from "next"
 import { CookieHandler, createCookieHandler } from "./cookieHandler"
 import { createMemorySessionStore, SessionStore } from "./memorySessionStore"
 
@@ -19,6 +19,11 @@ function getMocks() {
     const res = {
         json: jest.fn()
     } as unknown as NextApiResponse;
+
+    const context = {
+        req,
+        res
+    } as unknown as GetServerSidePropsContext;
 
     const cookieHandler: CookieHandler = {
         read: jest.fn(() => Promise.resolve(undefined)),
@@ -37,6 +42,7 @@ function getMocks() {
     return {
         req,
         res,
+        context,
         sessionStore,
         cookieHandler
     }
@@ -105,14 +111,14 @@ describe("externals", () => {
 
     describe("getSessionId", () => {
         it("Returns fresh id, creates cookie, if requested", async () => {
-            const { req, res, sessionStore, cookieHandler } = getMocks();
+            const { req, res, context, sessionStore, cookieHandler } = getMocks();
             configure({ sessionStore, cookieHandler });
             expect(await getSessionId(req, res)).toBe("sessionIdCode");
             expect(sessionStore.set).not.toHaveBeenCalled();
             expect(cookieHandler.read).toHaveBeenCalled();
             expect(cookieHandler.write).not.toHaveBeenCalled();
 
-            expect(await getSessionId(req, res, true)).toBe("sessionIdCode");
+            expect(await getSessionId(context, true)).toBe("sessionIdCode");
             expect(sessionStore.set).toHaveBeenCalledWith("sessionIdCode", {});
             expect(cookieHandler.write).toHaveBeenCalledWith(res, "sessionIdCode");
         });
@@ -151,7 +157,7 @@ describe("externals", () => {
             configure({sessionStore, cookieHandler});
             await setSessionData(req, res, {test: "hello"});
             expect(await getSessionData(req, res)).toMatchObject({test: "hello"});
-            expect(await pluckSessionProperty(req, res, "test")).toBe("hello");
+            expect(await pluckSessionProperty<string>(req, res, "test")).toBe("hello");
             expect(await pluckSessionProperty(req, res, "test")).toBe(null);
             expect(await getSessionData(req, res)).toMatchObject({});
         });

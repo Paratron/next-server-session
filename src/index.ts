@@ -38,9 +38,10 @@ export async function getSessionId(req: NextApiRequest, res: NextApiResponse, pe
 export async function getSessionId(
     a: any,
     b?: any,
-    persistSession?: boolean
+    c?: boolean
 ) {
     const [req, res] = getReqRes(a, b);
+    const persistSession = b !== res ? b : c;
     let sessionIdFromCookie;
     let sessionId = sessionIdFromCookie = await cookie.read(req);
     if (!sessionId || !(await store.get(sessionId))) {

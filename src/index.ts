@@ -67,11 +67,13 @@ export async function getSessionData<T>(a: any, b?: any): Promise<T> {
 export async function pluckSessionProperty<T = any>(context: GetServerSidePropsContext, propertyName: string): Promise<T | null>;
 export async function pluckSessionProperty<T = any>(req: NextApiRequest, res: NextApiResponse, propertyName: string): Promise<T | null>;
 export async function pluckSessionProperty<T>(a: any, b?: any, c?: string): Promise<T | null> {
-    if ((a && b && !c) || a && !b && !c) {
+    const [req, res] = getReqRes(a, b);
+    const propertyName = b !== res ? b : c;
+
+    if (!propertyName) {
         throw new Error("No propertyName given");
     }
-    const [req, res] = getReqRes(a, b);
-    const propertyName = c ? c : b;
+
     let data = await getSessionData(a, b);
 
     if(data[propertyName] === undefined){

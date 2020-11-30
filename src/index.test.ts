@@ -145,9 +145,10 @@ describe("externals", () => {
 
     describe("pluckSessionProperty", () => {
         it("Returns null if property does not exist", async () => {
-            const { req, res, sessionStore, cookieHandler } = getMocks();
+            const { req, res, context, sessionStore, cookieHandler } = getMocks();
             configure({ sessionStore, cookieHandler });
             expect(await pluckSessionProperty(req, res, "test")).toBe(null);
+            expect(await pluckSessionProperty(context, "test")).toBe(null);
         });
 
         it("Returns property and removes it from session object", async () => {

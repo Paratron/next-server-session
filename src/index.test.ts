@@ -1,12 +1,13 @@
 import {
     configure,
-    createMemorySessionStore, destroySession, getCSRFToken,
+    destroySession, getCSRFToken,
     getSessionData,
     getSessionId, replaceSessionData,
-    SessionStore, setSessionData, validateCSRFToken
+    setSessionData, validateCSRFToken
 } from "./index"
 import { NextApiRequest, NextApiResponse } from "next"
 import { CookieHandler, createCookieHandler } from "./cookieHandler"
+import { createMemorySessionStore, SessionStore } from "./memorySessionStore"
 
 function getMocks() {
     const req = {

@@ -59,6 +59,25 @@ export async function getSessionData<T>(a: any, b?: any): Promise<T> {
     return await store.get(await getSessionId(a, b)) || {};
 }
 
+export async function pluckSessionProperty<T = any>(context: GetServerSidePropsContext, propertyName: string): Promise<T | null>;
+export async function pluckSessionProperty<T = any>(req: NextApiRequest, res: NextApiResponse, propertyName: string): Promise<T | null>;
+export async function pluckSessionProperty<T>(a: any, b?: any, c?: string): Promise<T | null> {
+    if ((a && b && !c) || a && !b && !c) {
+        throw new Error("No propertyName given");
+    }
+    const [req, res] = getReqRes(a, b);
+    const propertyName = c ? c : b;
+    let data = await getSessionData(a, b);
+
+    if(data[propertyName] === undefined){
+        return null;
+    }
+    const result = data[propertyName];
+    delete data[propertyName];
+    await replaceSessionData(req as NextApiRequest, res as NextApiResponse, data);
+    return result;
+}
+
 export async function replaceSessionData<T>(context: GetServerSidePropsContext, data: T): Promise<void>;
 export async function replaceSessionData<T>(req: NextApiRequest, res: NextApiResponse, data: T): Promise<void>;
 export async function replaceSessionData<T>(a: any, b: any, c?: T) {

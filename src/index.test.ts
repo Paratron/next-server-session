@@ -2,7 +2,7 @@ import {
     configure,
     destroySession, getCSRFToken,
     getSessionData,
-    getSessionId, replaceSessionData,
+    getSessionId, pluckSessionProperty, replaceSessionData,
     setSessionData, validateCSRFToken
 } from "./index"
 import { NextApiRequest, NextApiResponse } from "next"
@@ -135,6 +135,26 @@ describe("externals", () => {
             expect(cookieHandler.destroy).toHaveBeenCalled();
         });
 
+    });
+
+    describe("pluckSessionProperty", () => {
+        it("Returns null if property does not exist", async () => {
+            const { req, res, sessionStore, cookieHandler } = getMocks();
+            configure({ sessionStore, cookieHandler });
+            expect(await pluckSessionProperty(req, res, "test")).toBe(null);
+        });
+
+        it("Returns property and removes it from session object", async () => {
+            const { req, res, cookieHandler } = getMocks();
+            const sessionStore = createMemorySessionStore();
+            sessionStore.id = async () => "id";
+            configure({sessionStore, cookieHandler});
+            await setSessionData(req, res, {test: "hello"});
+            expect(await getSessionData(req, res)).toMatchObject({test: "hello"});
+            expect(await pluckSessionProperty(req, res, "test")).toBe("hello");
+            expect(await pluckSessionProperty(req, res, "test")).toBe(null);
+            expect(await getSessionData(req, res)).toMatchObject({});
+        });
     });
 
     describe("getSessionData", () => {

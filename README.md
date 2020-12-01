@@ -175,7 +175,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 ```
 
+<h2 id="destroySession">`destroySession([polymorph]): Promise&lt;void&gt;`</h2>
 ## `destroySession()`
+This will drop the session data from the session store and mark the cookie to be expired and removed by the browser.
+
+### Example usage in `getServerSideProps()`
+This will logout the current user, if a valid CSRF token has been passed. Will render the page, if the logout failed.
+```typescript
+export async function getServerSideProps(context: GetServerSidePropsContext){
+    if(await validateCSRFToken(context.params.csrf)){
+        await destroySession();
+        return {
+            redirect: {
+                to: "/"
+            }    
+        }        
+    }
+
+    return {
+        props: {    
+        }    
+    }
+}
+```
+
+### Example usage in API routes
+Same logout example, but with a pure API route.
+```typescript
+export default async function handler(req: NextApiRequest, res: NextApiResponse){
+    const {csrf} = req.body;
+    if(await validateCSRFToken(csrf)){
+        destroySession();
+        res.redirect("/");
+        return;
+    }
+    res.redirect("/");      
+}
+```
+
 ## `getCSRFToken()`
 ## `validateCSRFToken()`
 ## `createMemorySessionStore()`

@@ -43,7 +43,7 @@ external session storage like redis, memcached, a mySQL database or just the har
 If you want to host your application on multiple servers behind a load balancer, you need to have a central external session store as well.
 
 
-<h2 id="getSessionData">`getSessionData([polymorph]): Promise<{}>`</h2>
+<h2 id="getSessionData"><code>getSessionData([polymorph]): Promise<{}></code></h2>
 This method returns the current session object. If no session has been established so far, an empty object will be returned.
 Calling this method will _not_ establish a session and will _not_ set a cookie for your visitors.
 
@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 ```
  
-<h2 id="setSessionData">`setSessionData([polymorph]): Promise<void>`</h2>
+<h2 id="setSessionData"><code>setSessionData([polymorph]): Promise<void></code></h2>
 This method takes an object and merges it into a existing session object. Only given keys will be overwritten, the rest
 of the session object will be preserved. Calling the method will establish a new session, if none exists and write a session
 cookie.

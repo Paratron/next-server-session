@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 ```
  
-<h2 id="setSessionData"><code>setSessionData([polymorph]): Promise\<void\></code></h2>
+<h2 id="setSessionData"><code>setSessionData([polymorph]): Promise&lt;void&gt;</code></h2>
 This method takes an object and merges it into a existing session object. Only given keys will be overwritten, the rest
 of the session object will be preserved. Calling the method will establish a new session, if none exists and write a session
 cookie.

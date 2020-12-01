@@ -216,7 +216,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 ```
 
 <h2 id="getCSRFToken"><code>getCSRFToken([polymorph]): Promise&lt;string&gt;</code></h2>
-## `getCSRFToken()`
 This method generates a random string, stores it in the session and returns it. Use the CSRF token to prevent [cross site
 request forgery](https://owasp.org/www-community/attacks/csrf).
 

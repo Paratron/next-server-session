@@ -213,7 +213,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 ```
 
+<h2 id="getCSRFToken"><code>getCSRFToken([polymorph]): Promise&lt;string&gt;</code></h2>
 ## `getCSRFToken()`
+This method generates a random string, stores it in the session and returns it. Use the CSRF token to prevent [cross site
+request forgery](https://owasp.org/www-community/attacks/csrf).
+
+### Example usage in `getServerSideProps()`
+This generates a CSRF token that can be passed with any forms or requests to the API.
+```typescript
+export async function getServerSideProps(context: GetServerSidePropsContext){
+    return {
+        props: {    
+            csrfToken: await getCSRFToken(context)
+        }    
+    }
+}
+```
+
+### Example usage in API routes
+A single page application might automatically receive new tokens from each API call to sign the
+next request.
+```typescript
+export default async function handler(req: NextApiRequest, res: NextApiResponse){
+    const {action, csrfToken} = req.body;
+    if(await validateCSRFToken(csrfToken)){
+        res.json({
+            result: performAction(action),
+            nextToken: await getCSRFToken(req, res)
+        });
+        res.end();
+        return;
+    }
+    res.status = 400;
+    res.end("Bad request"); 
+}
+```
+
 ## `validateCSRFToken()`
 ## `createMemorySessionStore()`
 ## `createCookieHandler()`

@@ -175,7 +175,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 ```
 
-<h2 id="destroySession">`destroySession([polymorph]): Promise&lt;void&gt;`</h2>
+<h2 id="destroySession"><code>destroySession([polymorph]): Promise&lt;void&gt;</code></h2>
 This will drop the session data from the session store and mark the cookie to be expired and removed by the browser.
 
 ### Example usage in `getServerSideProps()`

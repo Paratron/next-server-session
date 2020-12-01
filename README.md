@@ -50,7 +50,7 @@ If you want to host your application on multiple servers behind a load balancer,
 This method returns the current session object. If no session has been established so far, an empty object will be returned.
 Calling this method will _not_ establish a session and will _not_ set a cookie for your visitors.
 
-> Typescript tip:
+> Typescript tip:    
 > You can tell TS about the interface of your returned session object: `getSessionData<T>(...): Promise<T>`
 
 ### Example usage in `getServerSideProps()`
@@ -148,7 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 <h2 id="pluckSessionProperty"><code>pluckSessionProperty([polymorph]): Promise&lt;any | null&gt;</code></h2>
 Removes a property from the session object and returns it. Will return `null`, if the property does not exist.
 
-> Typescript tip:
+> Typescript tip:    
 > You can tell TS about the type of the returned value: `pluckSessionProperty<T>(...): Promise<T | null>`
 
 ### Example usage in `getServerSideProps()`

@@ -1,8 +1,8 @@
 export interface SessionStore {
     id: () => Promise<string>;
     get: (sessionId: string) => Promise<any>;
-    set: (sessionId: string, data: any) => Promise<any>;
-    merge: (sessionId: string, data: any) => Promise<any>;
+    set: (sessionId: string, data: any) => Promise<void>;
+    merge: (sessionId: string, data: any) => Promise<void>;
     destroy: (sessionId: string) => Promise<any>
 }
 
@@ -29,11 +29,11 @@ export function createMemorySessionStore(maxSessionAgeMS = 30 * 60 * 1000): Sess
             }
             return null;
         },
-        set: async (sessionId: string, data: any) => store.set(sessionId, { lastUpdate: Date.now(), data }),
-        merge: async (sessionId: string, data: any) => store.set(sessionId, {
+        set: async (sessionId: string, data: any) => {store.set(sessionId, { lastUpdate: Date.now(), data })},
+        merge: async (sessionId: string, data: any) => {store.set(sessionId, {
             lastUpdate: Date.now(),
             data: Object.assign({}, store.get(sessionId) ? store.get(sessionId).data : {}, data)
-        }),
+        })},
         destroy: async (sessionId: string) => store.delete(sessionId),
         id: async () => uuid()
     };

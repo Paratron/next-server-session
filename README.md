@@ -144,7 +144,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 ```
 
-## `pluckSessionData()`
+<h2 id="pluckSessionProperty"><code>pluckSessionProperty([polymorph]): Promise&lt;any | null&gt;</code></h2>
+## `pluckSessionProperty()`
+Removes a property from the session object and returns it. Will return `null`, if the property does not exist.
+
+> Typescript tip:
+> You can tell TS about the type of the returned value: `pluckSessionProperty<T>(...): Promise<T | null>`
+
+### Example usage in `getServerSideProps()`
+An API handler might store any errors in the session and redirect back to the form. The errors are plucked from the session
+and displayed in the form once.
+```typescript
+export async function getServerSideProps(context: GetServerSidePropsContext){
+    const formErrors = await pluckSessionProperty(context, "formErrors");
+
+    return {
+        props: {
+            formErrors        
+        }    
+    }
+}
+```
+
+### Example usage in API routes
+A user came from a referral link to a shop. The referral ID is applied ONCE to a purchase, then removed from the session.
+```typescript
+export default async function handler(req: NextApiRequest, res: NextApiResponse){
+      const referrer = pluckSessionProperty(req, res, "refId");
+      res.end(processPurchase(referrer));
+}
+```
+
 ## `destroySession()`
 ## `getCSRFToken()`
 ## `validateCSRFToken()`

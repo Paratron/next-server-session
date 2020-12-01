@@ -281,5 +281,83 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 ```
 
-## `createMemorySessionStore()`
-## `createCookieHandler()`
+-----------------------
+
+The following methods are internal factory functions for the default store and cookie handler.
+
+## `createMemorySessionStore(maxSessionAgeMS: number): SessionStore`
+Returns a new session store for in-memory storage of session objects. By default, it will keep
+session objects for 30 minutes after they have been interacted with the last time (by getting or setting).
+
+In case you want to modify the default max session age, you need to call this method and pass the result
+to the [`configure()`](#configure) method:
+
+```javascript
+const { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_SERVER } = require("next/constants");
+
+module.exports = (phase, { defaultConfig }) => {
+    if(phase === PHASE_PRODUCTION_SERVER || phase === PHASE_DEVELOPMENT_SERVER){
+        require("next-server-session").configure({
+            sessionStore: createMemorySessionStore(10 * 60 * 1000) // 10 Minutes
+        });
+    }
+
+    return defaultConfig;
+}
+```
+
+I recomment that you implement your own session store when you want to keep your session data any place
+else than in the memory of your current machine.
+
+To create a compatible session store, you need to implement its TS interface:
+
+```typescript
+interface SessionStore {
+    id: () => Promise<string>;
+    get: (sessionId: string) => Promise<any | null>;
+    set: (sessionId: string, data: any) => Promise<void>;
+    merge: (sessionId: string, data: any) => Promise<void>;
+    destroy: (sessionId: string) => Promise<any>
+}
+```
+
+When implementing your own session store, you can resort to [the tests I wrote](https://github.com/Paratron/next-server-session/blob/master/src/index.test.ts#L51) for the memory
+session store. 
+
+## `createCookieHandler(cookieName: string = "nextSession", cookieConfig: any)`
+This factory function creates a new cookie handler based on the [cookie]() package.
+
+If you want to change the used cookie name or update any configuration, call the method and pass the
+result to the [`configure()`]() method.
+
+The default cookie config is:
+
+```json
+{
+    "httpOnly": true,
+    "sameSite": true,
+    "path": "/",
+    "secure": false
+}
+```
+
+You can pass any options, the `cookie` module can understand.
+
+```javascript
+const { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_SERVER } = require("next/constants");
+
+module.exports = (phase, { defaultConfig }) => {
+    if(phase === PHASE_PRODUCTION_SERVER || phase === PHASE_DEVELOPMENT_SERVER){
+        require("next-server-session").configure({
+            cookieHandler: createCookieHandler("sId", {
+              "httpOnly": true,
+              "sameSite": true,
+              "path": "/basedir",
+              "secure": true
+          })
+        });
+    }
+
+    return defaultConfig;
+}
+```

@@ -3,6 +3,9 @@ Functions to handle serverside session data and csrf tokens for nextJS 10.x
 
 They can be used both in `getServerSideProps` as well as in API routes.
 
+> __Heads up!__    
+> This module provides a simple and effective mechanism to protect your application against [cross site request forgery](https://owasp.org/www-community/attacks/csrf) attacks.
+
 ------------------------------------
 ## API
 - [configure()](#configure)
@@ -69,8 +72,7 @@ Return user data from an API endpoint, when logged in.
 export default async function handler(req: NextApiRequest, res: NextApiResponse){
     const {user = null} = await getSessionData(req, res);
     if(!user){
-        res.status = 403;
-        res.end("Forbidden");
+        res.status(403).end("Forbidden");
         return;        
     }
     res.json(fetchUserData(user));
@@ -244,11 +246,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.end();
         return;
     }
-    res.status = 400;
-    res.end("Bad request"); 
+    res.status(400).end("Bad request"); 
 }
 ```
 
-## `validateCSRFToken()`
+<h2 id="validateCSRFToken"><code>validateCSRFToken([polymorph]): Promise&lt;boolean&gt;</code></h2>
+This method validates a given csrf token against a previously generated random token already stored in the session.
+This is used to prevent [cross site request forgery](https://owasp.org/www-community/attacks/csrf) attacks. Use this to protect any requests that perform
+actions in behalf of a user.
+
+### Example usage in `getServerSideProps()`
+Any page or request that performs an action for a user needs to be protected by a CSRF token.
+```typescript
+export async function getServerSideProps(context: GetServerSidePropsContext){
+    if(await validateCSRFToken(context, context.param.csrf)){
+        const {user = null} = getSessionData(context);
+        performSomeAction(user);    
+    }
+        
+    return {
+        props: {    
+        }    
+    }
+}
+```
+
+### Example usage in API routes
+```typescript
+export default async function handler(req: NextApiRequest, res: NextApiResponse){
+    if(await validateCSRFToken(req, res, req.body.csrfToken)){
+        performSomeAction();
+        res.end("ok");    
+    }
+    res.status(400).end("Bad request");   
+}
+```
+
 ## `createMemorySessionStore()`
 ## `createCookieHandler()`

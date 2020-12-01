@@ -48,6 +48,7 @@ This method returns the current session object. If no session has been establish
 Calling this method will _not_ establish a session and will _not_ set a cookie for your visitors.
 
 ### Example usage in `getServerSideProps()`
+Fetching the currently logged in user - if any.
 ```typescript
 export async function getServerSideProps(context: GetServerSidePropsContext){
     const {user = null} = await getSessionData(context);
@@ -60,6 +61,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext){
 ```
 
 ### Example usage in API routes
+Return user data from an API endpoint, when logged in.
 ```typescript
 export default async function handler(req: NextApiRequest, res: NextApiResponse){
     const {user = null} = await getSessionData(req, res);
@@ -79,6 +81,7 @@ of the session object will be preserved. Calling the method will establish a new
 cookie.
 
 ### Example usage in `getServerSideProps()`
+Log some actions of the user to modify the experience in other places.
 ```typescript
 export async function getServerSideProps(context: GetServerSidePropsContext){
     await setSessionData({viewedPricingPage: true});    
@@ -92,6 +95,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext){
 ```
 
 ### Example usage in API routes
+Place products in a cart and persist it in the session.
 ```typescript
 export default async function handler(req: NextApiRequest, res: NextApiResponse){
     const {cart = {}} = await getSessionData(req, res);
@@ -104,7 +108,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 ```
 
+<h2 id="replaceSessionData"><code>replaceSessionData([polymorph]): Promise&lt;void&gt;</code></h2>
 ## `replaceSessionData()`
+This method will replace the whole session object with a new one. This will overwrite/remove all existing session data, so 
+be careful when using it.
+
+### Example usage in `getServerSideProps()`
+Resets a multi-step form and all helper data. Still be careful with this!
+```typescript
+export async function getServerSideProps(context: GetServerSidePropsContext){
+    await replaceSessionData({step: 1});    
+
+    return {
+        props: {
+        }    
+    }
+}
+```
+
+### Example usage in API routes
+A login example where any stale data from previous user sessions is reset.
+```typescript
+export default async function handler(req: NextApiRequest, res: NextApiResponse){
+    const {username, password} = req.body;
+    let result = login(username, password);
+    if(result.user){
+        await replaceSessionData({user: result.user});
+        res.end("ok");
+        return;
+    }
+    res.end(result.error);
+}
+```
+
 ## `pluckSessionData()`
 ## `destroySession()`
 ## `getCSRFToken()`

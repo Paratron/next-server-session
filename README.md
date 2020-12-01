@@ -47,6 +47,9 @@ If you want to host your application on multiple servers behind a load balancer,
 This method returns the current session object. If no session has been established so far, an empty object will be returned.
 Calling this method will _not_ establish a session and will _not_ set a cookie for your visitors.
 
+> Typescript tip:
+> You can tell TS about the interface of your returned session object: `getSessionData<T>(...): Promise<T>`
+
 ### Example usage in `getServerSideProps()`
 Fetching the currently logged in user - if any.
 ```typescript

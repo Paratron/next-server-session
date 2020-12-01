@@ -14,6 +14,11 @@ const defaultCookieConfig = {
     secure: false
 };
 
+/**
+ * This factory function creates a new cookie handler based on the cookie package.
+ *
+ * {@link https://github.com/Paratron/next-server-session#createcookiehandlercookiename-string--nextsession-cookieconfig-any|More Information}
+ */
 export function createCookieHandler(cookieName: string = "nextSession", cookieConfig: any = defaultCookieConfig): CookieHandler {
     return {
         read: async (req) => {

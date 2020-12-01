@@ -6,6 +6,11 @@ export interface SessionStore {
     destroy: (sessionId: string) => Promise<any>
 }
 
+/**
+ * Returns a new session store for in-memory storage of session objects. By default, it will keep session objects for 30 minutes after they have been interacted with the last time (by getting or setting).
+ *
+ * {@link https://github.com/Paratron/next-server-session#creatememorysessionstoremaxsessionagems-number-sessionstore|More Information}
+ */
 export function createMemorySessionStore(maxSessionAgeMS = 30 * 60 * 1000): SessionStore {
     const { v4: uuid } = require("uuid");
 

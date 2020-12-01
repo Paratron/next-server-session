@@ -321,10 +321,10 @@ When implementing your own session store, you can resort to [the tests I wrote](
 session store. 
 
 ## `createCookieHandler(cookieName: string = "nextSession", cookieConfig: any)`
-This factory function creates a new cookie handler based on the [cookie]() package.
+This factory function creates a new cookie handler based on the [cookie](https://www.npmjs.com/package/cookie) package.
 
 If you want to change the used cookie name or update any configuration, call the method and pass the
-result to the [`configure()`]() method.
+result to the [`configure()`](#configure) method.
 
 The default cookie config is:
 

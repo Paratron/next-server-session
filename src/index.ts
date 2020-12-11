@@ -236,3 +236,8 @@ export async function validateCSRFToken(a: any, b: any, c?: string): Promise<boo
     await setSessionData(req as NextApiRequest, res as NextApiResponse, sessionData);
     return wasValid;
 }
+
+export {
+    createCookieHandler,
+    createMemorySessionStore
+}

@@ -18,7 +18,7 @@ export function createRedisSessionStore(maxSessionAgeMS = 30 * 60 * 1000, host?:
         get: async (sessionId: string) => {
             const value = await getAsync(`sess_${sessionId}`);
             if (value) {
-                redis.sendCommand(`TOUCH sess_${sessionId}`);
+                redis.expire(`sess_${sessionId}`, maxSessionAgeSeconds);
                 return JSON.parse(value);
             }
             return null;

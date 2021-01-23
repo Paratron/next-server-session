@@ -19,6 +19,7 @@ They can be used both in `getServerSideProps` as well as in API routes.
 
 ## Additional API
 - [createMemorySessionStore()](#createMemorySessionStore)
+- [createRedisSessionStore()](#createRedisSessionStore)
 - [createCookieHandler()](#createCookieHandler)
 
 ## `configure()`
@@ -351,6 +352,31 @@ module.exports = (phase, { defaultConfig }) => {
               "path": "/basedir",
               "secure": true
           })
+        });
+    }
+
+    return defaultConfig;
+}
+```
+
+
+## `createRedisSessionStore(maxSessionAgeMS: number, host?: string, port?: number, db?: number): SessionStore`
+In version 1.2, I added a redis session store that works if you have the `redis` module from npm installed in your project.
+
+It works like the memory session store, but connects and saves all session data on a given redis server.
+
+```javascript
+const { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_SERVER } = require("next/constants");
+const { createRedisSessionStore } = require("next-server-session/createRedisSessionStore");
+
+module.exports = (phase, { defaultConfig }) => {
+    if(phase === PHASE_PRODUCTION_SERVER || phase === PHASE_DEVELOPMENT_SERVER){
+        require("next-server-session").configure({
+            sessionStore: createRedisSessionStore(
+                10 * 60 * 1000, // 10 Minutes
+                "192.168.178.1",
+                6379
+            )
         });
     }
 

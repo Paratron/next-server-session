@@ -367,7 +367,7 @@ It works like the memory session store, but connects and saves all session data 
 
 ```javascript
 const { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_SERVER } = require("next/constants");
-const { createRedisSessionStore } = require("next-server-session/createRedisSessionStore");
+const { createRedisSessionStore } = require("next-server-session/dist/redisSessionStore");
 
 module.exports = (phase, { defaultConfig }) => {
     if(phase === PHASE_PRODUCTION_SERVER || phase === PHASE_DEVELOPMENT_SERVER){

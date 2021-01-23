@@ -9,7 +9,7 @@ import { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from "next
 import { CookieHandler, createCookieHandler } from "./cookieHandler"
 import { createMemorySessionStore, SessionStore } from "./memorySessionStore"
 
-function getMocks() {
+export function getMocks() {
     const req = {
         headers: {
             cookie: ""
@@ -48,98 +48,7 @@ function getMocks() {
     }
 }
 
-describe("Memory Session Store", () => {
-    it("Should create unique string IDs", async () => {
-        const store = createMemorySessionStore();
-        expect(typeof (await store.id())).toBe("string");
-        const id1 = await store.id();
-        const id2 = await store.id();
-        expect(id1 === id2).toBe(false);
-    });
-
-    it("Should return null on unknown sessionId", async () => {
-        const store = createMemorySessionStore();
-        expect(await store.get("unknown")).toBe(null);
-    });
-
-    it("Should resolve to void when setting or replacing values", async () => {
-        const store = createMemorySessionStore();
-        expect(await store.set("id1", { test: true })).toBeUndefined();
-        expect(await store.merge("id2", { test: true })).toBeUndefined();
-    });
-
-    it("Should return the correct data that previously has been set", async () => {
-        const store = createMemorySessionStore();
-        await store.set("id1", { test: true });
-        expect(await store.get("id1")).toMatchObject({ test: true });
-    });
-
-    it("Should replace objects when calling set on the same session id", async () => {
-        const store = createMemorySessionStore();
-        await store.set("id1", { test: true });
-        expect(await store.get("id1")).toMatchObject({ test: true });
-        await store.set("id1", { foo: "bar" });
-        expect(await store.get("id1")).toMatchObject({ foo: "bar" });
-    });
-
-    it("Should correctly merge session objects", async () => {
-        const store = createMemorySessionStore();
-        await store.merge("id1", { foo: "bar" });
-        expect(await store.get("id1")).toMatchObject({ foo: "bar" });
-        await store.merge("id1", { some: "more" });
-        expect(await store.get("id1")).toMatchObject({ foo: "bar", some: "more" });
-    });
-
-    it("Should correctly destroy session objects", async () => {
-        const store = createMemorySessionStore();
-        await store.set("id1", { test: true });
-        expect(await store.get("id1")).not.toBe(null);
-        await store.destroy("id1");
-        expect(await store.get("id1")).toBe(null);
-    });
-
-    it("Should remove older session objects", async () => {
-        const now = Date.now();
-        jest.useFakeTimers("modern");
-        const store = createMemorySessionStore();
-        await store.set("timeoutTest", { exists: true });
-        jest.setSystemTime(now + 31 * 60 * 1000);
-        jest.advanceTimersByTime(10000);
-        expect(await store.get("timeoutTest")).toBe(null);
-    });
-});
-
-describe("Cookie Handler", () => {
-    test("Reader", async () => {
-        const { req, res } = getMocks();
-        const handler = createCookieHandler();
-
-        expect(await handler.read(req)).toBeUndefined();
-        req.headers.cookie = "something=else; nextSession=abc123; some=more";
-        expect(await handler.read(req)).toBe("abc123");
-    });
-
-    test("Writer", async () => {
-        const { res } = getMocks();
-        const handler = createCookieHandler();
-
-        res.setHeader = jest.fn();
-        await handler.write(res, "testId")
-        expect(res.setHeader).toHaveBeenCalledWith("Set-Cookie", "nextSession=testId; Path=/; HttpOnly; SameSite=Strict");
-    });
-
-    test("Deleter", async () => {
-        const { res } = getMocks();
-        const handler = createCookieHandler();
-
-        res.setHeader = jest.fn();
-        await handler.destroy(res)
-        expect(res.setHeader).toHaveBeenCalledWith("Set-Cookie", "nextSession=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict");
-    });
-});
-
 describe("externals", () => {
-
     describe("getSessionId", () => {
         it("Returns fresh id, creates cookie, if requested", async () => {
             const { req, res, context, sessionStore, cookieHandler } = getMocks();
@@ -286,6 +195,9 @@ describe("externals", () => {
             expect(await validateCSRFToken(context, token)).toBe(true);
             expect(await validateCSRFToken(req, res, token)).toBe(false);
             expect(await sessionStore.get("uuid")).toMatchObject({});
+
+            const token2 = await getCSRFToken(req, res);
+            expect(token === token2).toBe(false);
         });
     });
 });

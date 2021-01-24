@@ -7,6 +7,7 @@ export function createRedisSessionStore(maxSessionAgeMS = 30 * 60 * 1000, host?:
     const maxSessionAgeSeconds = Math.floor(maxSessionAgeMS / 1000);
 
     const redis = require("redis").createClient({
+        detect_buffers: true,
         host,
         port,
         db

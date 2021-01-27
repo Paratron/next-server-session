@@ -31,7 +31,7 @@ export function createRedisSessionStore(maxSessionAgeMS = 30 * 60 * 1000, host?:
         merge: async (sessionId: string, data: any) => {
             const value = await redis.get(prefix(sessionId));
             await redis.setex(prefix(sessionId), maxSessionAgeSeconds, JSON.stringify(
-                Object.assign({}, value || {}, data)
+                Object.assign({}, value ? JSON.parse(value) : {}, data)
             ));
         },
         destroy: async (sessionId: string) => {

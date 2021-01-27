@@ -1,40 +1,41 @@
 import { SessionStore } from "./memorySessionStore"
 
+function prefix(inKey: string): string{
+    return `sess_${inKey}`;
+}
+
 export function createRedisSessionStore(maxSessionAgeMS = 30 * 60 * 1000, host?: string, port?: number, db?: number): SessionStore {
     const { v4: uuid } = require("uuid");
-    const { promisify } = require("util");
 
     const maxSessionAgeSeconds = Math.floor(maxSessionAgeMS / 1000);
 
-    const redis = require("redis").createClient({
-        detect_buffers: true,
+    const Redis = require("ioredis");
+    const redis = new Redis({
         host,
         port,
         db
     });
-    const getAsync = promisify(redis.get).bind(redis);
-    const setExAsync = promisify(redis.setex).bind(redis);
 
     return {
         get: async (sessionId: string) => {
-            const value = await getAsync(`sess_${sessionId}`);
+            const value = await redis.get(prefix(sessionId));
             if (value) {
-                redis.expire(`sess_${sessionId}`, maxSessionAgeSeconds);
+                redis.expire(prefix(sessionId), maxSessionAgeSeconds);
                 return JSON.parse(value);
             }
             return null;
         },
         set: async (sessionId: string, data: any) => {
-            await setExAsync(`sess_${sessionId}`, maxSessionAgeSeconds, JSON.stringify(data));
+            await redis.setex(prefix(sessionId), maxSessionAgeSeconds, JSON.stringify(data));
         },
         merge: async (sessionId: string, data: any) => {
-            const value = await getAsync(`sess_${sessionId}`);
-            await setExAsync(`sess_${sessionId}`, maxSessionAgeSeconds, JSON.stringify(
+            const value = await redis.get(prefix(sessionId));
+            await redis.setex(prefix(sessionId), maxSessionAgeSeconds, JSON.stringify(
                 Object.assign({}, value || {}, data)
             ));
         },
         destroy: async (sessionId: string) => {
-            redis.del(`sess_${sessionId}`);
+            redis.del(prefix(sessionId));
         },
         id: async () => uuid()
     };

@@ -1,6 +1,6 @@
 {
   "name": "next-server-session",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Functions to handle serverside session data and csrf tokens for nextJS 10.x",
   "main": "dist/index.js",
   "files": [
@@ -35,14 +35,14 @@
     "jest": "26.6.3",
     "next": "10.0.2",
     "ts-jest": "26.4.4",
-    "typescript": "4.1.2"
+    "typescript": "4.1.2",
+    "ioredis": "4.19.4"
   },
   "peerDependencies": {
-    "redis": "^3.0.2"
+    "ioredis": "4.19.4"
   },
   "dependencies": {
     "@types/redis": "2.8.28",
-    "cookie": "0.4.1",
-    "redis": "3.0.2"
+    "cookie": "0.4.1"
   }
 }
